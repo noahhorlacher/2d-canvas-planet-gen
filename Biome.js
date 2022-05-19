@@ -1,10 +1,7 @@
 import fractalSimplexNoise from './fractalSimplexNoise.js'
 import Range from './Range.js'
 import defaultTerrain from './biomes/default.js'
-
-function map(x, in_min, in_max, out_min, out_max) {
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
-}
+import map from './map.js'
 
 export default class Biome {
     constructor(
@@ -28,17 +25,53 @@ export default class Biome {
         this.nameLength = options.nameLength || defaultTerrain.nameLength
     }
 
+    generate(width, height) {
+        this.generateName()
+        this.generateTerrain(width, height)
+        this.generateBackground(width, height)
+    }
+
     generateName() {
         this.name = ''
         for (let i = 0; i < this.nameLength.random(); i++) this.name += this.syllables.random()
     }
 
+    generateTerrain(width, height) {
+        this.data = fractalSimplexNoise(width, height, {
+            frequency: this.scale,
+            octaves: this.octaves,
+            persistence: this.persistence,
+            amplitude: 1
+        })
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let heightMultiplier = map(y, this.groundRange.min * height, this.groundRange.max * height, 0, 1)
+                heightMultiplier = Math.max(0, Math.min(1, heightMultiplier))
+                this.data[x][y] = ((this.data[x][y] + 1) * heightMultiplier) / 2
+            }
+        }
+    }
+
+    generateBackground(width, height) {
+        const CANVAS = document.createElement('canvas')
+        CANVAS.width = width
+        CANVAS.height = height
+        const CONTEXT = CANVAS.getContext('2d')
+        this.drawSky(CONTEXT, width, height)
+        this.drawStars(CONTEXT, width, height)
+        this.drawSuns(CONTEXT, width, height)
+        this.background = CONTEXT.getImageData(0, 0, width, height)
+    }
+
     draw(context, width, height) {
-        this.drawSky(context, width, height)
-        this.drawStars(context, width, height)
-        this.drawSuns(context, width, height)
+        this.drawBackground(context, width, height)
         this.drawTerrain(context, width, height)
         this.drawOverlay(context, width, height)
+    }
+
+    drawBackground(context) {
+        context.putImageData(this.background, 0, 0)
     }
 
     drawSky(context, width, height) {
@@ -61,57 +94,44 @@ export default class Biome {
 
     drawSuns(context, width, height) {
         for (let i = 0; i < this.amountSuns.random(); i++) {
-            const x = Range.random(0, width), y = Range.random(0, this.groundRange.min * height)
-            const radius = this.sunsSize.random()
-            // halo
-            const halo = context.createRadialGradient(x, y, radius, x, y, radius * 2)
-            halo.addColorStop(0, this.sunsColor + '8')
-            halo.addColorStop(1, this.sunsColor + '0')
+            const X = Range.random(0, width), Y = Range.random(0, this.groundRange.min * height)
+            const RADIUS = this.sunsSize.random()
+            // halo gradient
+            const HALO = context.createRadialGradient(X, Y, RADIUS, X, Y, RADIUS * 2)
+            HALO.addColorStop(0, this.sunsColor + '8')
+            HALO.addColorStop(1, this.sunsColor + '0')
 
-            context.fillStyle = halo
+            context.fillStyle = HALO
             context.beginPath()
-            context.arc(x, y, radius * 2, 0, 2 * Math.PI)
+            context.arc(X, Y, RADIUS * 2, 0, 2 * Math.PI)
             context.fill()
 
             // body
             context.fillStyle = this.sunsColor
             context.beginPath()
-            context.arc(x, y, radius, 0, 2 * Math.PI)
+            context.arc(X, Y, RADIUS, 0, 2 * Math.PI)
             context.fill()
         }
     }
 
     drawTerrain(context, width, height) {
-        const imd = context.getImageData(0, 0, width, height)
-        const data = imd.data
-
-        const noise = fractalSimplexNoise(width, height, {
-            frequency: this.scale,
-            octaves: this.octaves,
-            persistence: this.persistence,
-            amplitude: 1
-        })
+        const IMD = context.getImageData(0, 0, width, height)
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                let v = (noise[x][y] + 1) / 2 // 0 to 1
-                let heightMultiplier = map(y, this.groundRange.min * height, this.groundRange.max * height, 0, 1)
-                heightMultiplier = Math.max(0, Math.min(1, heightMultiplier))
-                v *= heightMultiplier
-                if (v >= this.iso) {
+                if (this.data[x][y] >= this.iso) {
                     // remap v from iso-1 to 0-1
-                    v = (v - this.iso) / (1 - this.iso)
+                    let v = (this.data[x][y] - this.iso) / (1 - this.iso)
+
+                    // draw with color
                     let { r, g, b } = this.getColor(v)
                     let idx = 4 * ((y * width) + x)
-                    data[idx] = r
-                    data[idx + 1] = g
-                    data[idx + 2] = b
-                    data[idx + 3] = 255
+                    IMD.data[idx] = r, IMD.data[idx + 1] = g, IMD.data[idx + 2] = b, IMD.data[idx + 3] = 255
                 }
             }
         }
 
-        context.putImageData(imd, 0, 0)
+        context.putImageData(IMD, 0, 0)
     }
 
     drawOverlay(context, width, height) {

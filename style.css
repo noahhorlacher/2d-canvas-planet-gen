@@ -16,7 +16,56 @@ canvas {
     image-rendering: pixelated;
 }
 
+button {
+    color: black;
+    border: 0;
+    background: white;
+    font-size: 1.5em;
+    padding: .3em .7em;
+    cursor: pointer;
+    user-select: none;
+}
+
+button:hover {
+    background: lightgrey;
+}
+
+button:active {
+    background: grey;
+}
+
 #planetname {
     user-select: none;
     font-size: 2em;
+}
+
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    width: 80vw;
+    margin: auto;
+}
+
+.materialSelector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: .8em;
+    margin: 1em;
+    border: 2px solid transparent;
+    line-height: 100%;
+    padding: 0 1em;
+    user-select: none;
+    cursor: pointer;
+}
+
+.materialSelector.selected {
+    border-color: white;
+}
+
+.swatch {
+    width: 1em;
+    height: 1em;
+    margin-right: 1em;
+    border: 1px solid white;
 }
