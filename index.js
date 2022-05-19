@@ -2,8 +2,13 @@ import PlanetGenerator from './PlanetGenerator.js'
 
 const CANVAS = document.createElement('canvas')
 document.body.append(CANVAS)
-const PLANET_GENERATOR = new PlanetGenerator(CANVAS, 260, 480)
+CANVAS.width = window.innerWidth / 4, CANVAS.height = window.innerHeight / 4
+const PLANET_GENERATOR = new PlanetGenerator(CANVAS)
 
-document.body.addEventListener('click', () => PLANET_GENERATOR.generate())
+function handleClick() {
+    let name = PLANET_GENERATOR.generate()
+    document.querySelector('#planetname').textContent = name
+}
 
-PLANET_GENERATOR.generate()
+document.body.addEventListener('click', () => handleClick())
+handleClick()

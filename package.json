@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/noahhorlacher/2d-canvas-planet-gen#readme",
   "dependencies": {
-    "simplex-noise": "^3.0.1"
+    "open-simplex-noise": "^2.5.0"
   }
 }
